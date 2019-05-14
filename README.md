@@ -5,8 +5,7 @@ M5Stackで、MIDI over Bluetooth LE (BLE-MIDI) 接続のフットスイッチを
 
 ## DEMO VIDEO
 
-M5Stack Wireless Foot switch, Bluetooth MIDI (MIDI over Bluetooth)
-https://www.youtube.com/watch?v=CWVB-LN9PEs
+[M5Stack Wireless Foot switch, Bluetooth MIDI (MIDI over Bluetooth)](https://www.youtube.com/watch?v=CWVB-LN9PEs)
 
 
 ## 対応デバイス
