@@ -9,12 +9,10 @@
 #include <M5StackUpdater.h>
 
 ///// Button
-// https://www.mgo-tec.com/blog-entry-m5stack-button-arduino-esp32.html/4
 const uint8_t buttonPins[5] = {39, 38, 37, 21, 22    }; //A, B, C, 16,17(R2,T2)   18,19=top
 boolean buttonFlags[5] = {false, false, false, false, false};
 uint8_t buttonNote[5] = {60, 64, 67,   71, 72};
 uint8_t buttonCC[5] = {79, 80, 81,   82, 83};
-
 
 BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
@@ -22,35 +20,36 @@ bool deviceConnected = false;
 #define MIDI_SERVICE_UUID        "03b80e5a-ede8-4b33-a751-6ce34ec4c700"
 #define MIDI_CHARACTERISTIC_UUID "7772e5db-3868-4112-a1a9-f2669d106bf3"
 
-/*
-  uint8_t midiPacket[] = {
-  0x80,  // header
-  0x80,  // timestamp, not implemented
-  0x00,  // status
-  0x3c,  // 0x3c == 60 == middle c
-  0x00   // velocity
-  };
-*/
+void printConnectionStatus(const char* message){
+  M5.Lcd.fillRect(0, 210, 320, 20, BLACK);
+  M5.Lcd.setTextSize(2);
+  M5.Lcd.setCursor(160,210);
+  M5.Lcd.printf("%13s", message);
+}
+
+BLEServer *pServer;  // ■
+BLESecurity *pSecurity;  //■
 
 class MyServerCallbacks: public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) {
-      deviceConnected = true;
-      /*
-        M5.Lcd.fillScreen(BLACK);
-        M5.Lcd.setTextSize(2);
-        M5.Lcd.setCursor(10,0);
-        M5.Lcd.printf("BLE MIDI Connected.");
-      */
-    };
-    void onDisconnect(BLEServer* pServer) {
-      deviceConnected = false;
-      /*
-        M5.Lcd.fillScreen(BLACK);
-        M5.Lcd.setTextSize(2);
-        M5.Lcd.setCursor(10,0);
-        M5.Lcd.printf("BLE MIDI Disconnect.");
-      */
-    }
+  void onConnect(BLEServer* pServer) {
+    deviceConnected = true;
+    printConnectionStatus("connected");
+    Serial.println("connected");
+  }
+  void onDisconnect(BLEServer* pServer) {
+    deviceConnected = false;
+    printConnectionStatus("disconnected");
+    Serial.println("disconnected");
+
+    // Start advertising ■
+    pSecurity = new BLESecurity();
+    pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_BOND);
+    pSecurity->setCapability(ESP_IO_CAP_NONE);
+    pSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+  
+    pServer->getAdvertising()->addServiceUUID(MIDI_SERVICE_UUID);
+    pServer->getAdvertising()->start();
+  }
 };
 
 void noteOn(uint8_t channel, uint8_t pitch, uint8_t velocity) {
@@ -82,13 +81,14 @@ void setup() {
     ESP.restart();
   }
 
-  BLEDevice::init("M5StackMIDI"); //Device Name
+  BLEDevice::init("M5Footswitch"); //Device Name ■
 
   // Create the BLE Server
-  BLEServer *pServer = BLEDevice::createServer();
+  //BLEServer *pServer = BLEDevice::createServer(); // ■
+  pServer = BLEDevice::createServer(); // ■
   pServer->setCallbacks(new MyServerCallbacks());
   BLEDevice::setEncryptionLevel((esp_ble_sec_act_t)ESP_LE_AUTH_REQ_SC_BOND);
-
+    
   // Create the BLE Service
   BLEService *pService = pServer->createService(BLEUUID(MIDI_SERVICE_UUID));
 
@@ -108,7 +108,8 @@ void setup() {
   pService->start();
 
   // Start advertising
-  BLESecurity *pSecurity = new BLESecurity();
+  //BLESecurity *pSecurity = new BLESecurity(); //■
+  pSecurity = new BLESecurity();
   pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_BOND);
   pSecurity->setCapability(ESP_IO_CAP_NONE);
   pSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
